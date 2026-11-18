@@ -1,0 +1,77 @@
+{% set editing = expense is not none %}
+
+{# Одна строка позиции. index — номер строки с нуля: он же значение галочки «на всех». #}
+{% macro item_row(row, index) %}
+  <div class="item-row">
+    <input type="hidden" name="item_id[]" value="{{ row.id }}">
+    <input class="item-name" name="item_name[]" placeholder="Название" maxlength="100" required value="{{ row.name }}">
+    <div class="item-numbers">
+      <input name="item_price[]" placeholder="Цена, ₽" inputmode="decimal" required value="{{ row.price }}">
+      <span>×</span>
+      <input name="item_qty[]" type="number" min="1" max="1000" step="1" aria-label="Количество" required value="{{ row.qty }}">
+    </div>
+    <div class="item-tools">
+      <label><input type="checkbox" name="item_for_all[]" value="{{ index }}"{% if row.for_all %} checked{% endif %}> на всех</label>
+      <button type="button" class="link-button" data-remove-item>Убрать</button>
+    </div>
+  </div>
+{% endmacro %}
+
+{# «Назад» из правки ведёт к расходу, из нового расхода — к событию #}
+{% import "_ui.html" as ui %}
+<section style="{{ ui.theme(event) }}" data-accent="{{ (event | event_color).main }}"
+         data-back="{% if editing %}/view/expenses/{{ expense.id }}{% else %}/view/events/{{ event.id }}{% endif %}"
+         data-main-text="Сохранить" data-main-submit="expense-form">
+  <p class="eyebrow">{{ event.title }}</p>
+  <h1>{% if editing %}Изменить расход{% else %}Новый расход{% endif %}</h1>
+
+  {# hx-sync="this:drop": пока форма отправляется, повторные нажатия игнорируются #}
+  <form id="expense-form" hx-post="{% if editing %}/expenses/{{ expense.id }}{% else %}/events/{{ event.id }}/expenses{% endif %}"
+        hx-target="#app" hx-sync="this:drop" hx-encoding="multipart/form-data">
+    <label class="field">
+      Название
+      <input name="title" placeholder="Ужин в кафе" maxlength="100" required value="{{ expense.title if editing }}">
+    </label>
+
+    <label class="field">
+      Кто платил
+      <select name="payer_id">
+        {% for user in payers %}
+          <option value="{{ user.id }}"{% if user.id == payer_id %} selected{% endif %}>{{ user | name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <h2>Позиции</h2>
+    <div id="items">
+      {% for row in rows %}{{ item_row(row, loop.index0) }}{% endfor %}
+    </div>
+    <button type="button" class="button button-secondary" data-add-item>Добавить позицию</button>
+
+    <fieldset class="tips">
+      <legend>Чаевые, %</legend>
+      {% for preset in tip_presets %}
+        <label class="tip"><input type="radio" name="tip_percent" value="{{ preset }}"{% if tip == preset %} checked{% endif %}> {{ preset }}</label>
+      {% endfor %}
+      <label class="tip"><input type="radio" name="tip_percent" value="custom"{% if tip_is_custom %} checked{% endif %}> своё</label>
+      <input name="tip_custom" type="number" min="0" max="100" step="1" aria-label="Свои чаевые, %" value="{{ tip if tip_is_custom }}">
+    </fieldset>
+
+    {% if not editing %}
+      <label class="field">
+        Фото чека (необязательно)
+        <input type="file" name="photo" accept="image/*">
+      </label>
+    {% endif %}
+  </form>
+
+  {% if editing %}
+    <button class="button button-danger" hx-post="/expenses/{{ expense.id }}/delete" hx-target="#app"
+            hx-confirm="Удалить расход?" data-haptic>Удалить расход</button>
+  {% endif %}
+
+  {# Заготовка новой строки: app.js копирует её при нажатии «Добавить позицию» #}
+  <template id="item-row-template">
+    {{ item_row({"id": "", "name": "", "price": "", "qty": 1, "for_all": False}, 0) }}
+  </template>
+</section>

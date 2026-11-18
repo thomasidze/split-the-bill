@@ -1,0 +1,63 @@
+{% import "_ui.html" as ui %}
+{% set event = summary.event %}
+<section style="{{ ui.theme(event) }}" data-accent="{{ (event | event_color).main }}" data-back="/view/home"
+         data-main-text="Добавить расход" data-main-get="/view/events/{{ event.id }}/expenses/new">
+  <div class="hero">
+    <h1>{{ event.title }}</h1>
+    <div class="hero-amount">{{ summary.total | rub }}</div>
+    {% if summary.total %}
+      {{ ui.progress(summary.total - summary.unclaimed, summary.total) }}
+      <div class="hero-line">
+        {% if summary.unclaimed %}Не разобрано по событию: {{ summary.unclaimed | rub }}{% else %}всё разобрано{% endif %}
+      </div>
+    {% else %}
+      <div class="hero-line">пока без расходов</div>
+    {% endif %}
+  </div>
+
+  <div class="people">
+    {% for participant in event.participants %}
+      <span class="chip">{{ ui.avatar(participant.user) }}{{ participant.user | name }}</span>
+    {% endfor %}
+  </div>
+  {% if not is_participant %}
+    <button class="button" hx-post="/events/{{ event.id }}/join" hx-target="#app" data-haptic>Я участвую</button>
+  {% endif %}
+
+  <nav class="tabs">
+    <button class="tab{% if tab == 'expenses' %} active{% endif %}"
+            hx-get="/view/events/{{ event.id }}?tab=expenses" hx-target="#app" data-haptic>Расходы</button>
+    <button class="tab{% if tab == 'transfers' %} active{% endif %}"
+            hx-get="/view/events/{{ event.id }}?tab=transfers" hx-target="#app" data-haptic>Кто кому</button>
+  </nav>
+
+  {% if tab == "expenses" %}
+    {% for expense, result in summary.expenses %}
+      <button class="card" hx-get="/view/expenses/{{ expense.id }}" hx-target="#app" data-haptic>
+        <span class="card-row">
+          <span class="card-title">{{ expense.title }}</span>
+          <span class="card-amount">{{ result.total | rub }}</span>
+        </span>
+        <span class="card-row card-meta">
+          <span class="payer">{{ ui.avatar(expense.payer) }}платил(а) {{ expense.payer | name }}</span>
+          {% if expense.status == "open" %}
+            <span class="badge badge-open">открыт</span>
+          {% else %}
+            <span class="badge">закрыт</span>
+          {% endif %}
+        </span>
+        {% if expense.status == "open" %}
+          {{ ui.progress(result.total - result.unclaimed, result.total) }}
+          <span class="card-line {% if result.unclaimed %}warn{% else %}hint{% endif %}">не разобрано {{ result.unclaimed | rub }} из {{ result.total | rub }}</span>
+        {% endif %}
+      </button>
+    {% else %}
+      <div class="empty">
+        <div class="empty-icon">🛒</div>
+        Расходов пока нет
+      </div>
+    {% endfor %}
+  {% else %}
+    {% include "event_transfers.html" %}
+  {% endif %}
+</section>

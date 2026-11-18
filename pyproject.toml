@@ -1,0 +1,28 @@
+[project]
+name = "split-bill"
+version = "0.1.0"
+description = "Telegram Mini App: делим счёт в групповом чате"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "aiogram>=3.13",
+    "sqlalchemy>=2.0",
+    "jinja2",
+    "python-multipart",
+    "pydantic-settings",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# starlette советует httpx2 вместо httpx для TestClient; httpx пока работает
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]

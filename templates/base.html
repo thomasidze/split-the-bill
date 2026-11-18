@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Делим счёт</title>
+  {# Официальный скрипт Telegram: его обновляют по тому же адресу, поэтому без integrity #}
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  {# Сюда htmx подставляет экраны. Первый экран грузится сразу после открытия. #}
+  <main id="app" hx-get="/view/start" hx-trigger="load">
+    <p class="empty">Загрузка…</p>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

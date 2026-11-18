@@ -1,0 +1,11 @@
+<section data-back="/view/home" data-main-text="Создать" data-main-submit="event-form">
+  <h1>Новое событие</h1>
+
+  {# hx-sync="this:drop": пока форма отправляется, повторные нажатия игнорируются #}
+  <form id="event-form" hx-post="/events" hx-target="#app" hx-sync="this:drop">
+    <label class="field">
+      Название
+      <input name="title" placeholder="Баня 21.06" maxlength="100" required autofocus>
+    </label>
+  </form>
+</section>

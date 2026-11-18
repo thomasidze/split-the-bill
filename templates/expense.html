@@ -1,0 +1,18 @@
+{% import "_ui.html" as ui %}
+<section style="{{ ui.theme(event) }}" data-accent="{{ (event | event_color).main }}" data-back="/view/events/{{ event.id }}">
+  {% include "expense_live.html" %}
+
+  {# Фото лежит за заголовком X-Init-Data, поэтому <img src> не подойдёт: его подгружает app.js.
+     Фото вне #live: опрос раз в 5 секунд не должен его перезагружать. #}
+  {% if expense.photo_file_id %}
+    <h2>Чек</h2>
+    <div class="receipt" data-photo-url="/photos/{{ expense.id }}">Загружаю фото чека…</div>
+  {% endif %}
+  {% if photo_lost %}
+    <p class="warn">Фото не удалось сохранить в Telegram</p>
+  {% endif %}
+
+  {% if can_edit %}
+    <button class="button button-secondary" hx-get="/view/expenses/{{ expense.id }}/edit" hx-target="#app" data-haptic>Изменить расход</button>
+  {% endif %}
+</section>

@@ -1,0 +1,87 @@
+{# Часть экрана расхода, которую htmx перезагружает целиком (опрос раз в 5 секунд и ответ на отметку).
+   Пока расход открыт, у #live есть hx-get и hx-trigger; у закрытого их нет — опрос сам прекращается.
+   Опрос и отметки синхронизируются через один элемент #live:
+   - опрос (hx-sync="this:drop") пропускается, если уже идёт другой запрос, и не отменяет нажатие;
+   - нажатие на отметку (hx-sync="#live:replace") отменяет идущий опрос или прошлое нажатие,
+     поэтому устаревший ответ не затирает свежий. #}
+{% import "_ui.html" as ui %}
+{% set result = view.result %}
+<div class="live" id="live" hx-target="#live" hx-swap="outerHTML" hx-sync="this:drop"
+     {%- if is_open %} hx-get="/view/expenses/{{ expense.id }}/live" hx-trigger="every 5s"{% endif %}>
+  <div class="hero">
+    <div class="hero-top">
+      <span class="payer">{{ ui.avatar(expense.payer) }}платил(а) {{ expense.payer | name }}</span>
+      <span class="badge badge-on-hero">{% if is_open %}Открыт{% else %}Закрыт{% endif %}</span>
+    </div>
+    <h1>{{ expense.title }}</h1>
+    <div class="hero-amount">{{ result.total | rub }}</div>
+    {% if expense.tip_percent %}<div class="hero-line">включая чаевые {{ expense.tip_percent }} %</div>{% endif %}
+    {% if is_open %}
+      {{ ui.progress(result.total - result.unclaimed, result.total) }}
+      <div class="hero-line">Не разобрано: {{ result.unclaimed | rub }} из {{ result.total | rub }}</div>
+    {% elif view.leftover %}
+      <div class="hero-line">
+        {% if expense.leftover_mode == "payer" %}Остаток остался на плательщике
+        {% else %}Остаток поделён поровну между участниками{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% for row in rows %}
+    {% set item = row.item %}
+    <div class="item-card{% if row.mine %} mine{% endif %}">
+      <div class="card-row">
+        <span class="card-title">{{ item.name }}</span>
+        <span class="item-price">{{ item.unit_price | rub }}{% if item.qty > 1 %} × {{ item.qty }}{% endif %}</span>
+      </div>
+
+      <div class="card-row item-bottom">
+        <div class="claim-info">
+          {% if item.for_all %}
+            <span class="hint">делится на всех ({{ participant_count }} чел.)</span>
+          {% else %}
+            {% if row.claims %}
+              <div class="claimers">
+                {% for claim in row.claims %}
+                  <span class="claimer">{{ ui.avatar(claim.user) }}{{ claim.user | name }}{% if item.qty > 1 %} ×{{ claim.units }}{% endif %}</span>
+                {% endfor %}
+              </div>
+            {% elif is_open %}
+              <span class="hint">никто не отметил</span>
+            {% endif %}
+            {% if item.qty > 1 and row.left and is_open %}
+              <div class="hint">осталось {{ row.left }} шт.</div>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        {% if is_open and not item.for_all %}
+          {% if item.qty == 1 %}
+            <button class="claim-toggle{% if row.mine %} on{% endif %}" aria-pressed="{{ 'true' if row.mine else 'false' }}"
+                    hx-post="/items/{{ item.id }}/claim" hx-sync="#live:replace"
+                    hx-vals='{"units": {{ 0 if row.mine else 1 }} }' data-haptic>{% if row.mine %}✓ Моё{% else %}Моё{% endif %}</button>
+          {% else %}
+            <div class="stepper">
+              <button aria-label="Меньше" hx-post="/items/{{ item.id }}/claim" hx-sync="#live:replace"
+                      hx-vals='{"units": {{ row.mine - 1 }} }' data-haptic{% if row.mine <= 0 %} disabled{% endif %}>−</button>
+              <span>{{ row.mine }}</span>
+              <button class="plus" aria-label="Больше" hx-post="/items/{{ item.id }}/claim" hx-sync="#live:replace"
+                      hx-vals='{"units": {{ row.mine + 1 }} }' data-haptic{% if row.mine >= item.qty %} disabled{% endif %}>+</button>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="share">
+    <div class="share-total">Твоя доля: {{ share.total | rub }}{% if expense.tip_percent %} (включая чаевые {{ share.tips | rub }}){% endif %}</div>
+    {% if share.leftover %}<div class="share-note">в том числе часть остатка: {{ share.leftover | rub }}</div>{% endif %}
+  </div>
+
+  {% if is_open and is_payer %}
+    {# app.js спросит, что делать с остатком, и отправит закрытие #}
+    <button class="button" data-close-expense="/expenses/{{ expense.id }}/close"
+            data-unclaimed="{{ result.unclaimed }}" data-unclaimed-text="{{ result.unclaimed | rub }}" data-haptic>Закрыть расход</button>
+  {% endif %}
+</div>

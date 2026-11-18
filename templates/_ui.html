@@ -1,0 +1,19 @@
+{# Мелкие кусочки оформления, общие для экранов: {% import "_ui.html" as ui %} #}
+
+{# Кружок с первой буквой имени в цвете человека #}
+{% macro avatar(user) -%}
+  {%- set color = user | person_color -%}
+  <span class="avatar" style="background: {{ color.bg }}; color: {{ color.fg }}" title="{{ user | name }}">{{ user | initial }}</span>
+{%- endmacro %}
+
+{# Цвет события для корня экрана: style="{{ ui.theme(event) }}" #}
+{% macro theme(event) -%}
+  {%- set color = event | event_color -%}
+  --accent: {{ color.main }}; --accent-soft: {{ color.soft }}
+{%- endmacro %}
+
+{# Полоса «сколько разобрано»: claimed и total в копейках #}
+{% macro progress(claimed, total) -%}
+  {%- set percent = (claimed * 100 // total) if total else 100 -%}
+  <div class="progress" role="progressbar" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ percent }}%"></span></div>
+{%- endmacro %}

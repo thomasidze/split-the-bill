@@ -1,0 +1,45 @@
+{# Вкладка «Кто кому»; подключается из event.html, поэтому summary, users, pending_pairs и me уже есть #}
+{% import "_ui.html" as ui %}
+{% if summary.unclaimed %}
+  <p class="note">Пока не разобрано {{ summary.unclaimed | rub }} — суммы могут измениться</p>
+{% endif %}
+
+{% macro transfer_card(from_user, to_user, amount) %}
+  <div class="transfer-people">
+    {{ ui.avatar(users[from_user]) }}
+    <span class="transfer-arrow">→</span>
+    {{ ui.avatar(users[to_user]) }}
+    <span class="transfer-amount">{{ amount | rub }}</span>
+  </div>
+  <div class="transfer-names">{{ users[from_user] | name }} → {{ users[to_user] | name }}: {{ amount | rub }}</div>
+{% endmacro %}
+
+{# Пару, по которой уже заявлен перевод, показываем один раз — ниже, как «ожидает подтверждения» #}
+{% for transfer in summary.transfers if (transfer.from_user, transfer.to_user) not in pending_pairs %}
+  <div class="card transfer">
+    {{ transfer_card(transfer.from_user, transfer.to_user, transfer.amount) }}
+    {% if transfer.from_user == me %}
+      <button class="button" hx-post="/events/{{ summary.event.id }}/settlements"
+              hx-vals='{"to_user": {{ transfer.to_user }}, "amount": {{ transfer.amount }}}'
+              hx-target="#app" data-haptic>Я перевёл</button>
+    {% endif %}
+  </div>
+{% endfor %}
+
+{% for settlement in summary.pending %}
+  <div class="card transfer">
+    {{ transfer_card(settlement.from_user, settlement.to_user, settlement.amount) }}
+    <span class="badge badge-wait">ожидает подтверждения</span>
+    {% if settlement.to_user == me %}
+      <button class="button" hx-post="/settlements/{{ settlement.id }}/confirm"
+              hx-target="#app" data-haptic>Подтвердить</button>
+    {% endif %}
+  </div>
+{% endfor %}
+
+{% if not summary.transfers and not summary.pending %}
+  <div class="empty">
+    <div class="empty-icon">🤝</div>
+    Все в расчёте 🎉
+  </div>
+{% endif %}
