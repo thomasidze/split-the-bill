@@ -63,7 +63,6 @@ app/
 templates/       — HTML-экраны
 static/          — app.css и app.js
 tests/
-docs/superpowers/ — спецификация и план разработки
 ```
 
 ## Быстрый старт
